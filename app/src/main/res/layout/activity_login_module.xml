@@ -33,6 +33,7 @@
         app:layout_constraintVertical_bias="0.153">
 
         <EditText
+            android:id="@+id/userName"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:layout_marginStart="30dp"
@@ -44,6 +45,7 @@
             android:textSize="17dp" />
 
         <EditText
+            android:id="@+id/password"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:layout_marginStart="30dp"
@@ -51,6 +53,7 @@
             android:background="@drawable/edit_text"
             android:hint="Password"
             android:padding="10dp"
+            android:inputType="textPassword"
             android:textSize="17dp" />
     </LinearLayout>
 

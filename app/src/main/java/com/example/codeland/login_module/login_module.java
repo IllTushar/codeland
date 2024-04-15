@@ -3,6 +3,7 @@ package com.example.codeland.login_module;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +19,7 @@ import com.example.codeland.utils.Utils;
 public class login_module extends AppCompatActivity {
     AppCompatButton loginButton;
     Utils utils;
+    EditText userName, password;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -41,7 +43,10 @@ public class login_module extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                utils.intent(login_module.this, upload_image.class);
+                String username = userName.getText().toString().trim();
+                String passwords = password.getText().toString().trim();
+                if (vailidations(username,passwords))
+                    utils.intent(login_module.this, upload_image.class);
             }
         });
     }
@@ -49,6 +54,19 @@ public class login_module extends AppCompatActivity {
     public void findIds() {
         loginButton = findViewById(R.id.loginButton);
         utils = new Utils(login_module.this);
+        userName = findViewById(R.id.userName);
+        password = findViewById(R.id.password);
+    }
 
+    private boolean vailidations(String username, String password) {
+        if (username.isEmpty()) {
+            utils.toast(login_module.this,"Enter userName!!");
+            return false;
+        } else if (password.isEmpty()) {
+            utils.toast(login_module.this,"Enter password!!");
+            return false;
+        } else {
+            return true;
+        }
     }
 }

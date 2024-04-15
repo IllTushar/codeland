@@ -230,32 +230,32 @@ public class upload_image extends AppCompatActivity {
         mStorageRef.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
             @Override
             public void onSuccess(ListResult listResult) {
-                if (listResult!=null && !listResult.getItems().isEmpty()){
-                for (StorageReference item : listResult.getItems()) {
-                    item.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                @Override
-                                public void onSuccess(Uri uri) {
-                                    progressDialog.dismiss();
-                                    if (uri!=null){
+                if (listResult != null && !listResult.getItems().isEmpty()) {
+                    for (StorageReference item : listResult.getItems()) {
+                        item.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                    @Override
+                                    public void onSuccess(Uri uri) {
+                                        progressDialog.dismiss();
+                                        if (uri != null) {
 
-                                    Glide.with(upload_image.this).load(uri).into(imageView2);
-                                    }else{
-                                        utils.toast(upload_image.this,"There is no images");
+                                            Glide.with(upload_image.this).load(uri).into(imageView2);
+                                        } else {
+                                            utils.toast(upload_image.this, "There is no images");
+                                        }
                                     }
-                                }
-                            })
-                            .addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    progressDialog.dismiss();
-                                    utils.toast(upload_image.this, e.getMessage());
-                                }
-                            });
+                                })
+                                .addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        progressDialog.dismiss();
+                                        utils.toast(upload_image.this, e.getMessage());
+                                    }
+                                });
 
-                }
-                }else{
+                    }
+                } else {
                     progressDialog.dismiss();
-                    utils.toast(upload_image.this,"image folder is empty!!");
+                    utils.toast(upload_image.this, "image folder is empty!!");
                 }
 
             }
