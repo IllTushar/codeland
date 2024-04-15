@@ -1,15 +1,17 @@
 package com.example.codeland.upload_image;
 
 import android.Manifest;
-import android.content.ClipData;
+import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -24,6 +26,20 @@ import androidx.core.view.WindowInsetsCompat;
 import com.bumptech.glide.Glide;
 import com.example.codeland.R;
 import com.example.codeland.utils.Utils;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.ListResult;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 
@@ -34,6 +50,14 @@ public class upload_image extends AppCompatActivity {
     public static int REQUEST_CODE_ASK_PERMISSIONS = 101;
     public static int ACCESS_IMAGE = 123;
     Utils utils;
+
+    private StorageReference mStorageRef;
+    image_model img;
+    ProgressDialog mProgressDialog;
+    viewImages viewImages;
+
+    ArrayList<image_model> list;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +81,62 @@ public class upload_image extends AppCompatActivity {
                 GalleryPress();
             }
         });
+        uploadImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (img.getImageUri() != null) {
+                    uploadImageOnFirebase(img.getImageUri());
+                } else {
+                    utils.toast(upload_image.this, "Please select again!!");
+                }
+            }
+        });
+
+        viewImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getImages();
+            }
+        });
+    }
+
+    private void uploadImageOnFirebase(Uri imageUri) {
+        if (imageUri != null) {
+            mProgressDialog = new ProgressDialog(this);
+            mProgressDialog.setMessage("Uploading...");
+            mProgressDialog.show();
+
+            StorageReference fileReference = mStorageRef.child(System.currentTimeMillis()
+                    + "." + getFileExtension(imageUri));
+
+            UploadTask uploadTask = fileReference.putFile(imageUri);
+
+            Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                @Override
+                public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                    if (!task.isSuccessful()) {
+                        throw task.getException();
+                    }
+
+                    // Continue with the task to get the download URL
+                    return fileReference.getDownloadUrl();
+                }
+            }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                @Override
+                public void onComplete(@NonNull Task<Uri> task) {
+                    mProgressDialog.dismiss();
+                    if (task.isSuccessful()) {
+                        Uri downloadUri = task.getResult();
+                        utils.toast(upload_image.this, "Upload successful: " + downloadUri.toString());
+                    } else {
+                        // Handle failures
+                        utils.toast(upload_image.this, "Upload failed: " + task.getException().getMessage());
+                    }
+                }
+            });
+        } else {
+            utils.toast(upload_image.this, "No file selected");
+        }
     }
 
     ///GalleryPress wants runtime permission to access the gallery....
@@ -119,6 +199,8 @@ public class upload_image extends AppCompatActivity {
             if (uri != null) {
                 Glide.with(upload_image.this)
                         .load(uri).into(imageView2);
+
+                img.setImageUri(uri);
             }
 
         }
@@ -129,6 +211,61 @@ public class upload_image extends AppCompatActivity {
         viewImage = findViewById(R.id.viewImage);
         utils = new Utils(upload_image.this);
         imageView2 = findViewById(R.id.imageView2);
+        mStorageRef = FirebaseStorage.getInstance().getReference("images");
+        img = new image_model();
+        viewImages = new viewImages(upload_image.this);
+
     }
+
+    private String getFileExtension(Uri uri) {
+        ContentResolver contentResolver = getContentResolver();
+        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+        return mimeTypeMap.getExtensionFromMimeType(contentResolver.getType(uri));
+    }
+
+    private void getImages() {
+        ProgressDialog progressDialog = new ProgressDialog(upload_image.this);
+        progressDialog.show();
+        progressDialog.setMessage("Please wait..");
+        mStorageRef.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
+            @Override
+            public void onSuccess(ListResult listResult) {
+                if (listResult!=null && !listResult.getItems().isEmpty()){
+                for (StorageReference item : listResult.getItems()) {
+                    item.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+                                    progressDialog.dismiss();
+                                    if (uri!=null){
+
+                                    Glide.with(upload_image.this).load(uri).into(imageView2);
+                                    }else{
+                                        utils.toast(upload_image.this,"There is no images");
+                                    }
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    progressDialog.dismiss();
+                                    utils.toast(upload_image.this, e.getMessage());
+                                }
+                            });
+
+                }
+                }else{
+                    progressDialog.dismiss();
+                    utils.toast(upload_image.this,"image folder is empty!!");
+                }
+
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                progressDialog.dismiss();
+            }
+        });
+    }
+
 
 }
