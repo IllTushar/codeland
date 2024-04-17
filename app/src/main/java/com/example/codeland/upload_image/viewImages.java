@@ -19,7 +19,7 @@ public class viewImages {
 
     public viewImages(Context context) {
         this.context = context;
-        imageModel = new image_model();
+        imageModel = new image_model(context);
     }
 
     public void dialogBox(Context context, ArrayList<image_model> list) {
