@@ -20,6 +20,10 @@ import com.google.firebase.storage.ListResult;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class image_model {
     Uri imageUri;
    Context context;
@@ -89,48 +93,68 @@ public class image_model {
     }
 
 
-
-    public void getImages(Context context, ImageView imageView2,StorageReference mStorageRef) {
+    public void getImages(Context context, ImageView imageView2, StorageReference mStorageRef) {
         ProgressDialog progressDialog = new ProgressDialog(context);
-        progressDialog.show();
         progressDialog.setMessage("Please wait..");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        // ArrayList to store download URLs
+        List<Uri> downloadUrls = new ArrayList<>();
+
         mStorageRef.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
             @Override
             public void onSuccess(ListResult listResult) {
                 if (listResult != null && !listResult.getItems().isEmpty()) {
                     for (StorageReference item : listResult.getItems()) {
                         item.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                    @Override
-                                    public void onSuccess(Uri uri) {
-                                        progressDialog.dismiss();
-                                        if (uri != null) {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                if (uri != null) {
+                                    downloadUrls.add(uri);
+                                }
 
-                                            Glide.with(context).load(uri).into(imageView2);
-                                        } else {
-                                            utils.toast(context, "There is no images");
-                                        }
-                                    }
-                                })
-                                .addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        progressDialog.dismiss();
-                                        utils.toast(context, e.getMessage());
-                                    }
-                                });
-
+                                // Check if this is the last item
+                                if (downloadUrls.size() == listResult.getItems().size()) {
+                                    progressDialog.dismiss();
+                                    loadLastImageIntoImageView(context, imageView2, downloadUrls);
+                                }
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                progressDialog.dismiss();
+                                utils.toast(context, e.getMessage());
+                            }
+                        });
                     }
                 } else {
                     progressDialog.dismiss();
-                    utils.toast(context, "image folder is empty!!");
+                    utils.toast(context, "Image folder is empty!!");
                 }
-
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 progressDialog.dismiss();
+                utils.toast(context, e.getMessage());
             }
         });
     }
+
+    // Method to load the last image from the list into ImageView using Glide
+    private void loadLastImageIntoImageView(Context context, ImageView imageView, List<Uri> downloadUrls) {
+        if (downloadUrls.isEmpty()) {
+            utils.toast(context, "There are no images");
+            return;
+        }
+
+        // Load the last image from the list
+        Uri lastImageUrl = downloadUrls.get(downloadUrls.size() - 1);
+        Glide.with(context)
+                .load(lastImageUrl)
+                .into(imageView);
+    }
+
+
 }
